@@ -204,7 +204,7 @@ function setCurtains(style) {
   for (const m of curtainMats) {
     const t = CURTAIN_TEX[style].clone();
     t.needsUpdate = true;
-    t.repeat.set(m.userData.width / 0.06, DROP / 0.06);
+    t.repeat.set(m.userData.width / 0.025, DROP / 0.025);
     m.map = t;
     m.needsUpdate = true;
   }
@@ -225,7 +225,12 @@ function curtain(zc, width) {
 for (const [za, zb] of WIN) { curtain(za - 0.12, 0.32); curtain(zb + 0.12, 0.32); }
 setCurtains('sage');
 const brass = mat('#b08d57', { roughness: 0.35, metalness: 0.8 });
-const pole = attach(wWin, mesh(new THREE.CylinderGeometry(0.014, 0.014, 3.08, 12), mat('#8a5a32', { roughness: 0.5 }), W - 0.13, POLE_Y, D / 2));
+const poleWood = mat('#a8743f', { roughness: 0.5 });
+const pole = attach(wWin, mesh(new THREE.CylinderGeometry(0.014, 0.014, 3.0, 12), poleWood, W - 0.13, POLE_Y, D / 2));
+for (const s of [-1, 1]) {
+  const fin = attach(wWin, mesh(new THREE.SphereGeometry(0.03, 16, 12), poleWood, W - 0.13, POLE_Y, D / 2 + s * 1.53));
+  fin.scale.set(1, 1, 1.6);
+}
 pole.rotation.x = Math.PI / 2;
 
 // door, shown open, with its swing on the floor
@@ -357,20 +362,18 @@ function sofa() {
   const g = new THREE.Group(), w = 1.9, d = 0.75;
   const fab = mat('#b0521f', { roughness: 1 }), fab2 = mat('#bc5b24', { roughness: 1 }), steel = mat('#1d1d1d', { roughness: 0.45, metalness: 0.6 });
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) leg(0.17, steel, sx * (w / 2 - 0.1), sz * (d / 2 - 0.08), g, 0.06, 0.013, 0.007);
-  rbox(w, 0.16, d, fab, 0, 0.25, 0, g, 0.02);
-  rbox(w, 0.36, 0.14, fab, 0, 0.51, -d / 2 + 0.07, g, 0.05);
-  for (const sx of [-1, 1]) rbox(0.1, 0.31, d, fab, sx * (w / 2 - 0.05), 0.485, 0, g, 0.04);
-  const iw = (w - 0.2) / 3;
-  for (let i = 0; i < 3; i++) {
-    const x = -w / 2 + 0.1 + iw * (i + 0.5);
-    rbox(iw - 0.01, 0.12, d - 0.16, fab2, x, 0.39, 0.06, g, 0.04);
-    rbox(iw - 0.02, 0.28, 0.12, fab2, x, 0.58, -d / 2 + 0.19, g, 0.05).rotation.x = -0.1;
+  rbox(w - 0.1, 0.16, d - 0.04, fab, 0, 0.25, 0, g, 0.05);
+  const inner = w - 0.28, channels = 8, cw = inner / channels;
+  for (let i = 0; i < channels; i++) {
+    rbox(cw - 0.005, 0.34, 0.13, fab2, -inner / 2 + cw * (i + 0.5), 0.5, -d / 2 + 0.08, g, 0.05).rotation.x = -0.12;
   }
-  rbox(0.4, 0.36, 0.12, mat('#c8962e', { roughness: 1 }), -0.58, 0.6, -0.1, g, 0.05).rotation.set(-0.25, 0, 0.12);
-  rbox(0.38, 0.34, 0.12, mat('#6d7446', { roughness: 1 }), 0.6, 0.59, -0.1, g, 0.05).rotation.set(-0.25, 0, -0.1);
-  const quilt = mat('#e7d8bc', { roughness: 1 });
-  box(0.3, 0.02, 0.6, quilt, w / 2 - 0.1, 0.645, 0.02, g);
-  box(0.02, 0.35, 0.6, quilt, w / 2 + 0.01, 0.48, 0.02, g);
+  for (const sx of [-1, 1]) {
+    const arm = rbox(0.13, 0.36, d, fab, sx * (w / 2 - 0.08), 0.47, 0, g, 0.065);
+    arm.rotation.z = -sx * 0.14;
+  }
+  const sw = inner / 2;
+  for (const sx of [-1, 1]) rbox(sw - 0.01, 0.12, d - 0.2, fab2, sx * sw / 2, 0.39, 0.07, g, 0.05);
+  for (const sx of [-1, 1]) rbox(0.4, 0.36, 0.12, fab2, sx * 0.62, 0.58, -0.14, g, 0.06).rotation.set(-0.25, 0, sx * 0.1);
   return g;
 }
 // OMHU TEDDY: 200 × 100 × 70, seat 34, seating area 130 × 65, no legs.
@@ -378,29 +381,39 @@ function teddy() {
   const g = new THREE.Group(), w = 2.0, d = 1.0;
   const fab = new THREE.MeshStandardMaterial({ color: '#a9532a', roughness: 1 }), fab2 = new THREE.MeshStandardMaterial({ color: '#b45f35', roughness: 1 });
   g.userData.setColor = (hex) => { fab.color.set(hex); fab2.color.set(hex).offsetHSL(0, 0, 0.03); };
-  rbox(w, 0.17, d, fab, 0, 0.085, 0, g, 0.06);
-  rbox(w - 0.02, 0.17, d - 0.02, fab2, 0, 0.255, 0, g, 0.07);
-  rbox(w, 0.36, 0.35, fab, 0, 0.52, -d / 2 + 0.175, g, 0.16);
-  for (const sx of [-1, 1]) rbox(0.35, 0.36, d, fab, sx * (w / 2 - 0.175), 0.52, 0, g, 0.16);
-  rbox(0.4, 0.34, 0.12, mat('#c8962e', { roughness: 1 }), -0.35, 0.52, -0.25, g, 0.05).rotation.set(-0.25, 0, 0.12);
-  rbox(0.38, 0.32, 0.12, mat('#6d7446', { roughness: 1 }), 0.37, 0.51, -0.25, g, 0.05).rotation.set(-0.25, 0, -0.1);
+  rbox(w, 0.17, d, fab, 0, 0.085, 0, g, 0.05);
+  rbox(w, 0.17, d, fab2, 0, 0.255, 0, g, 0.05);
+  for (const sx of [-1, 1]) {
+    const bolster = mesh(new THREE.CylinderGeometry(0.18, 0.18, d - 0.02, 32), fab, sx * (w / 2 - 0.18), 0.52, 0, g);
+    bolster.rotation.x = Math.PI / 2;
+  }
+  for (const sx of [-1, 1]) rbox(0.62, 0.36, 0.32, fab, sx * 0.33, 0.52, -d / 2 + 0.17, g, 0.15);
   return g;
 }
 const RUG_TEX = {
   // Milano cream / terracotta wool loop rug, 9 mm pile.
   milano: () => canvasTex(1150, 800, (c, w, h) => {
-    c.fillStyle = '#e8dfcd'; c.fillRect(0, 0, w, h);
-    for (let i = 0; i < 9000; i++) {
-      c.fillStyle = rand() < 0.7 ? 'rgba(176,82,44,.55)' : 'rgba(120,96,70,.35)';
-      c.fillRect(rand() * w, rand() * h, 3 + rand() * 7, 2);
+    c.fillStyle = '#ebe2d0'; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 14000; i++) {
+      c.fillStyle = rand() < 0.6 ? 'rgba(206,140,96,.35)' : 'rgba(170,150,120,.25)';
+      c.fillRect(rand() * w, rand() * h, 2 + rand() * 5, 2);
     }
   }),
   // Albany Grid rust / cream wool rug, 12 mm pile.
   albany: () => canvasTex(1150, 800, (c, w, h) => {
-    c.fillStyle = '#a9542e'; c.fillRect(0, 0, w, h);
-    c.strokeStyle = '#eadfca'; c.lineWidth = 6;
-    for (let x = 40; x < w; x += 110) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke(); }
-    for (let y = 40; y < h; y += 110) { c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); }
+    c.fillStyle = '#b0623c'; c.fillRect(0, 0, w, h);
+    c.strokeStyle = '#eee3cf'; c.lineWidth = 4;
+    const line = (x1, y1, x2, y2) => { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2 + (rand() - 0.5) * 4, y2); c.stroke(); };
+    for (let i = 1; i < 7; i++) {
+      const x = (w / 7) * i + (rand() - 0.5) * 20;
+      line(x, 12, x, h - 12);
+      if (i % 3 === 1) line(x + 12, 12, x + 12, h - 12);
+    }
+    for (let i = 1; i < 5; i++) {
+      const y = (h / 5) * i + (rand() - 0.5) * 20;
+      line(12, y, w - 12, y);
+      if (i % 2 === 0) line(12, y + 12, w - 12, y + 12);
+    }
   }),
   // Bowman cream wool rug with border, 25 mm pile.
   bowman: () => canvasTex(1150, 800, (c, w, h) => {
@@ -437,22 +450,39 @@ function sideboard() {
   const g = new THREE.Group(), w = 1.6, d = 0.4;
   const wal = mat('#6a4127', { roughness: 0.5 }), pine = mat('#b98a55', { roughness: 0.6 }), dark = mat('#2a1c14');
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) compassLeg(pine, sx * (w / 2 - 0.12), sz * 0.13, 0.2, 0.25, g);
-  box(w, 0.3, d, wal, 0, 0.35, 0, g);
-  box(0.54, 0.26, 0.005, dark, 0, 0.35, d / 2 + 0.002, g);
-  box(0.52, 0.012, 0.3, wal, 0, 0.35, 0.04, g);
-  for (const sx of [-1, 1]) {
-    box(0.515, 0.25, 0.012, wal, sx * 0.53, 0.35, d / 2 + 0.006, g);
-    box(0.08, 0.02, 0.004, dark, sx * 0.53, 0.46, d / 2 + 0.013, g);
+  compassLeg(pine, 0, -0.13, 0.2, 0.25, g);
+  box(1.06, 0.3, d, wal, -0.27, 0.35, 0, g);
+  box(0.54, 0.015, d, wal, 0.53, 0.4925, 0, g);
+  box(0.54, 0.015, d, wal, 0.53, 0.2075, 0, g);
+  box(0.015, 0.3, d, wal, 0.7925, 0.35, 0, g);
+  const front = mat('#704629', { roughness: 0.45 });
+  for (const x of [-0.53, -0.005]) {
+    box(0.515, 0.27, 0.012, front, x, 0.34, d / 2 + 0.006, g);
+    box(0.1, 0.022, 0.006, dark, x, 0.466, d / 2 + 0.013, g);
   }
+  box(0.54, 0.27, 0.01, wal, 0.53, 0.35, -d / 2 + 0.005, g);
+  box(0.52, 0.012, d - 0.02, wal, 0.53, 0.35, 0.01, g);
   box(1.23, 0.71, 0.03, mat('#111', { roughness: 0.25, metalness: 0.2 }), 0, 1.0, -d / 2 + 0.02, g);
-  const shade = new THREE.MeshStandardMaterial({ color: '#f3ead8', emissive: '#ffcf8a', emissiveIntensity: 0.02, roughness: 0.3 });
-  mesh(new THREE.CylinderGeometry(0.02, 0.05, 0.13, 20), shade, 0.62, 0.565, 0, g);
-  const cap = mesh(new THREE.SphereGeometry(0.11, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), shade, 0.62, 0.63, 0, g);
+  const opal = new THREE.MeshStandardMaterial({ color: '#f6f3ec', emissive: '#ffd49a', emissiveIntensity: 0.02, roughness: 0.4 });
+  mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.01, 24), opal, -0.62, 0.505, 0, g);
+  mesh(new THREE.CylinderGeometry(0.034, 0.04, 0.07, 24), opal, -0.62, 0.545, 0, g);
+  const cap = mesh(new THREE.SphereGeometry(0.065, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), opal, -0.62, 0.575, 0, g);
+  cap.scale.y = 1.15;
   cap.castShadow = false;
-  lamp(g, new THREE.Vector3(0.62, 0.61, 0.05), shade, 1.5);
-  plant(g, -0.62, 0.5, 0, 1.1, true);
+  lamp(g, new THREE.Vector3(-0.62, 0.6, 0.08), opal, 1.2);
+  plant(g, 0.62, 0.5, 0, 1.1, true);
   return g;
 }
+// KALLAX insert with door, pine / woven poplar: pine frame, woven panel, finger hole.
+const pineMat = mat('#d2a973', { roughness: 0.55 });
+const wovenMat = new THREE.MeshStandardMaterial({
+  roughness: 0.8,
+  map: canvasTex(64, 64, (c) => {
+    c.fillStyle = '#b89363'; c.fillRect(0, 0, 64, 64);
+    c.fillStyle = '#e2c79a';
+    for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) (i + j) % 2 ? c.fillRect(i * 8, j * 8 + 1, 8, 5) : c.fillRect(i * 8 + 1, j * 8, 5, 8);
+  }, [3, 3]),
+});
 function kallax() {
   const g = new THREE.Group(), w = 1.82, h = 1.82, d = 0.39, t = 0.04, dv = 0.015, oak = mat('#d6c7ae', { roughness: 0.55 });
   box(w, t, d, oak, 0, t / 2, 0, g); box(w, t, d, oak, 0, h - t / 2, 0, g);
@@ -475,8 +505,12 @@ function kallax() {
     if (kind === 'games') games(g, cx, y0, zf, cell);
     else if (kind === 'books') books(g, x0, y0, cell, cell, zf);
     else if (kind.startsWith('door:')) {
-      box(cell - 0.006, cell - 0.006, 0.018, mat(kind.slice(5), { roughness: 0.6 }), cx, y0 + cell / 2, d / 2 - 0.009, g);
-      mesh(new THREE.SphereGeometry(0.012, 12, 8), brass, cx, y0 + cell / 2, d / 2 + 0.006, g);
+      const s = cell - 0.006, fr = 0.045, cy = y0 + cell / 2, z = d / 2 - 0.009;
+      box(s, s, 0.012, wovenMat, cx, cy, z - 0.002, g);
+      for (const sy of [-1, 1]) box(s, fr, 0.018, pineMat, cx, cy + sy * (s - fr) / 2, z, g);
+      for (const sx of [-1, 1]) box(fr, s - 2 * fr, 0.018, pineMat, cx + sx * (s - fr) / 2, cy, z, g);
+      const hole = mesh(new THREE.CircleGeometry(0.012, 20), mat('#3a2c20'), cx + (s - fr) / 2, cy, z + 0.0095, g);
+      hole.castShadow = false;
     } else if (kind === 'plant') plant(g, cx, y0, 0.05, 0.9, true);
     else if (kind === 'stack') {
       let y = y0;
@@ -527,27 +561,30 @@ function robotDock() {
 }
 // Furniture Choice Kingston round table: Ø 90 × 77, oak-finish pedestal.
 function gamesTable() {
-  const g = new THREE.Group(), wood = mat('#b98150', { roughness: 0.45 });
+  const g = new THREE.Group(), wood = mat('#c68a45', { roughness: 0.4 });
   mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.02, 64), wood, 0, 0.76, 0, g);
-  mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.66, 24), wood, 0, 0.42, 0, g);
-  for (let i = 0; i < 4; i++) {
-    const f = box(0.34, 0.06, 0.05, wood, 0, 0.05, 0, g);
-    f.rotation.y = i * Math.PI / 2;
-    f.position.set(Math.cos(i * Math.PI / 2) * 0.17, 0.05, -Math.sin(i * Math.PI / 2) * 0.17);
-  }
+  mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.07, 64, 1, true), wood, 0, 0.715, 0, g);
+  const profile = [[0.05, 0.14], [0.075, 0.18], [0.075, 0.26], [0.055, 0.3], [0.06, 0.36], [0.045, 0.42], [0.05, 0.52], [0.035, 0.6], [0.05, 0.64], [0.05, 0.68], [0, 0.68]];
+  mesh(new THREE.LatheGeometry([new THREE.Vector2(0, 0.14), ...profile.map(([r, y]) => new THREE.Vector2(r, y))], 24), wood, 0, 0, 0, g);
+  const footCurve = new THREE.CatmullRomCurve3([[0.05, 0.2, 0], [0.16, 0.12, 0], [0.26, 0.05, 0], [0.33, 0.015, 0]].map(p => new THREE.Vector3(...p)));
+  const footGeo = new THREE.TubeGeometry(footCurve, 16, 0.025, 8);
+  for (let i = 0; i < 4; i++) mesh(footGeo, wood, 0, 0, 0, g).rotation.y = Math.PI / 4 + i * Math.PI / 2;
   box(0.46, 0.008, 0.46, mat('#d9c7a3'), 0, 0.774, 0, g).rotation.y = 0.35;
   for (let i = 0; i < 9; i++) mesh(new THREE.CylinderGeometry(0.012, 0.014, 0.03, 10), mat(pickOf(GAME)), (rand() - 0.5) * 0.36, 0.793, (rand() - 0.5) * 0.36, g);
   return g;
 }
+// Marbury solid oak Windsor spindle bow-back chair: W 46 × D 56.5 × H 98.5, seat 47.
 function chair() {
-  const g = new THREE.Group(), elm = mat('#b5824f', { roughness: 0.5 });
-  rbox(0.44, 0.035, 0.42, elm, 0, 0.45, 0, g, 0.015);
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) leg(0.44, elm, sx * 0.17, sz * 0.15, g, 0.1, 0.014, 0.012);
-  const back = new THREE.Group(); back.position.set(0, 0.465, -0.19); back.rotation.x = -0.12; g.add(back);
-  mesh(new THREE.TorusGeometry(0.2, 0.012, 8, 32, Math.PI), elm, 0, 0, 0, back).scale.y = 2.1;
+  const g = new THREE.Group(), oak = mat('#b98a55', { roughness: 0.5 });
+  rbox(0.44, 0.04, 0.42, oak, 0, 0.45, 0, g, 0.015);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) leg(0.43, oak, sx * 0.17, sz * 0.15, g, 0.1, 0.016, 0.013);
+  for (const sx of [-1, 1]) box(0.02, 0.02, 0.36, oak, sx * 0.185, 0.16, 0, g);
+  box(0.37, 0.02, 0.02, oak, 0, 0.16, 0, g);
+  const back = new THREE.Group(); back.position.set(0, 0.47, -0.19); back.rotation.x = -0.14; g.add(back);
+  mesh(new THREE.TorusGeometry(0.2, 0.013, 8, 32, Math.PI), oak, 0, 0, 0, back).scale.y = 2.55;
   for (let x = -0.12; x <= 0.121; x += 0.06) {
-    const hh = 0.42 * Math.sqrt(1 - (x / 0.2) ** 2);
-    mesh(new THREE.CylinderGeometry(0.007, 0.007, hh, 8), elm, x, hh / 2, 0, back);
+    const hh = 0.51 * Math.sqrt(1 - (x / 0.2) ** 2);
+    mesh(new THREE.CylinderGeometry(0.007, 0.007, hh, 8), oak, x, hh / 2, 0, back);
   }
   return g;
 }
@@ -565,6 +602,8 @@ function norden() {
     const legs = new THREE.Group();
     g.add(legs);
     for (const sz of [-1, 1]) box(0.035, H - 0.03, 0.035, birch, s * 0.62, (H - 0.03) / 2, sz * 0.3, legs);
+    box(0.035, 0.035, 0.6, birch, s * 0.62, 0.06, 0, legs);
+    box(0.035, 0.035, 0.6, birch, s * 0.62, H - 0.07, 0, legs);
     return { pivot, legs, s };
   });
   g.userData.setLeaves = (n) => leaves.forEach(({ pivot, legs, s }, i) => {
@@ -578,13 +617,18 @@ function norden() {
 // IKEA FRÖSVI folding chair: 44 × 51 × 77, seat 46.
 function frosvi() {
   const g = new THREE.Group(), beech = mat('#dcb88c', { roughness: 0.5 });
-  box(0.38, 0.02, 0.33, beech, 0, 0.46, 0.02, g);
+  for (let i = 0; i < 7; i++) box(0.38, 0.015, 0.035, beech, 0, 0.46, -0.13 + i * 0.047, g);
   for (const sx of [-1, 1]) {
     const f = box(0.025, 0.5, 0.025, beech, sx * 0.19, 0.24, 0.05, g); f.rotation.x = -0.35;
-    const b = box(0.025, 0.78, 0.025, beech, sx * 0.2, 0.39, -0.08, g); b.rotation.x = 0.25;
+    const b = box(0.025, 0.8, 0.025, beech, sx * 0.2, 0.4, -0.08, g); b.rotation.x = 0.25;
   }
-  box(0.4, 0.08, 0.02, beech, 0, 0.7, -0.17, g).rotation.x = 0.25;
-  box(0.4, 0.05, 0.02, beech, 0, 0.58, -0.14, g).rotation.x = 0.25;
+  box(0.38, 0.018, 0.018, beech, 0, 0.07, 0.13, g);
+  box(0.38, 0.018, 0.018, beech, 0, 0.2, -0.03, g);
+  const rail = box(0.4, 0.09, 0.02, beech, 0, 0.72, -0.17, g);
+  rail.rotation.x = 0.25;
+  const hole = mesh(new THREE.CircleGeometry(0.014, 16), mat('#6b5a44'), 0, 0.725, -0.157, g);
+  hole.rotation.x = 0.25;
+  hole.castShadow = false;
   return g;
 }
 // IKEA EKENÄSET armchair: 64 × 78 × 76, seat 45, arms 63, 22 cm free underneath.
@@ -599,13 +643,14 @@ function armchair() {
   box(0.6, 0.04, 0.04, frame, 0, 0.26, 0.3, g);
   const seat = rbox(0.56, 0.13, 0.5, fab, 0, 0.385, 0.06, g, 0.05); seat.rotation.x = -0.05;
   const bk = rbox(0.56, 0.46, 0.12, fab, 0, 0.66, -0.27, g, 0.05); bk.rotation.x = -0.25;
-  rbox(0.34, 0.3, 0.1, mat('#c8962e', { roughness: 1 }), 0, 0.62, -0.16, g, 0.04).rotation.x = -0.25;
+  for (const sx of [-1, 1]) box(0.035, 0.5, 0.035, frame, sx * 0.265, 0.62, -0.33, g).rotation.x = -0.25;
   return g;
 }
 // IKEA EKENÄSET footstool: 59 × 43 × 40.
 function footstool() {
   const g = new THREE.Group(), frame = mat('#3b2a20', { roughness: 0.45 });
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) leg(0.3, frame, sx * 0.25, sz * 0.17, g, 0.06);
+  for (const sx of [-1, 1]) box(0.03, 0.03, 0.34, frame, sx * 0.25, 0.14, 0, g);
   rbox(0.59, 0.1, 0.43, mat('#d8ccb4', { roughness: 1 }), 0, 0.35, 0, g, 0.04);
   return g;
 }
@@ -613,12 +658,15 @@ function footstool() {
 function arcLamp() {
   const g = new THREE.Group(), black = mat('#1d1d1d', { roughness: 0.5 });
   const base = mesh(new THREE.CylinderGeometry(0.14, 0.15, 0.04, 32), black, 0, 0.02, 0, g);
-  const curve = new THREE.CatmullRomCurve3([[0, 0.04, 0], [0, 1.2, 0], [0, 1.72, 0.3], [0, 1.72, 0.7], [0, 1.6, 0.92]].map(p => new THREE.Vector3(...p)));
-  mesh(new THREE.TubeGeometry(curve, 48, 0.011, 8), brass, 0, 0, 0, g);
-  mesh(new THREE.SphereGeometry(0.15, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat('#1d1d1d', { roughness: 0.5, side: THREE.DoubleSide }), 0, 1.45, 0.92, g);
+  const curve = new THREE.CatmullRomCurve3([[0, 0.04, 0.02], [0, 0.6, -0.04], [0, 1.25, 0.05], [0, 1.66, 0.35], [0, 1.72, 0.72], [0, 1.71, 0.86]].map(p => new THREE.Vector3(...p)));
+  mesh(new THREE.TubeGeometry(curve, 64, 0.01, 8), brass, 0, 0, 0, g);
+  const shadeMat = mat('#1d1d1d', { roughness: 0.5, side: THREE.DoubleSide });
+  mesh(new THREE.CylinderGeometry(0.09, 0.15, 0.13, 32, 1, true), shadeMat, 0, 1.6, 0.92, g);
+  mesh(new THREE.SphereGeometry(0.09, 24, 8, 0, Math.PI * 2, 0, Math.PI / 2), shadeMat, 0, 1.665, 0.92, g).scale.y = 0.5;
+  mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.05, 8), brass, 0, 1.71, 0.9, g);
   const bulbMat = new THREE.MeshStandardMaterial({ color: '#fff', emissive: '#ffd59a', emissiveIntensity: 0 });
-  mesh(new THREE.SphereGeometry(0.035, 16, 8), bulbMat, 0, 1.47, 0.92, g).castShadow = false;
-  lamp(g, new THREE.Vector3(0, 1.4, 0.92), bulbMat, 6, true);
+  mesh(new THREE.SphereGeometry(0.035, 16, 8), bulbMat, 0, 1.58, 0.92, g).castShadow = false;
+  lamp(g, new THREE.Vector3(0, 1.52, 0.92), bulbMat, 6, true);
   g.userData.foot = base;
   return g;
 }
@@ -643,7 +691,7 @@ const LINKS = {
   billy: 'https://www.ikea.com/gb/en/p/billy-bookcase-oak-effect-60477382/',
   shelf: 'https://www.diy.com/departments/floating-shelf-made-from-solid-oak-oak-floating-shelf-40cm/5056779100019_BQ.prd',
   table: 'https://www.furniturechoice.co.uk/p/kingston-round-dining-table-90cm-natural-oak-finished-solid-hardwood-dt10000226/',
-  chair: 'https://www.laredoute.co.uk/ppdp/prod-351317809.aspx',
+  chair: 'https://www.thefurnituremarket.co.uk/marburyr-solid-oak-windsor-spindle-bow-back-dining-chair',
   armchair: 'https://www.ikea.com/gb/en/p/ekenaeset-armchair-kilanda-light-beige-50533492/',
   footstool: 'https://www.ikea.com/se/en/p/ekenaeset-footstool-walnut-effect-kilanda-light-beige-90624428/',
   arc: 'https://www.johnlewis.com/john-lewis-metal-arc-floor-lamp-black-brass/p6417804',
@@ -655,14 +703,14 @@ const IT = {
   loren: addItem('Loren 3 seater, burnt orange', '190 × 75 × 69 cm · robot clearance 17 cm', sofa(), 2.25, 0.375, 0, { url: LINKS.sofa }),
   teddy: addItem('OMHU TEDDY sofa, rust', '200 × 100 × 70 cm · seat 34 · no legs (sits on floor)', teddy(), 2.25, 0.5, 0, { url: LINKS.teddy }),
   coffee: addItem('Nepal coffee table', '110 × 59 × 39 cm · robot clearance 20 cm', coffeeTable(), 2.25, 1.495, 0, { url: LINKS.coffee }),
-  tv: addItem('Nepal 160 cm TV unit + 55" TV', '160 × 40 × 50 cm, TV 123 × 71 · robot clearance 20 cm', sideboard(), 2.25, D - 0.2, 180, { url: LINKS.tv }),
+  tv: addItem('Nepal 160 cm TV unit + 55" TV', '160 × 40 × 50 cm, TV 123 × 71 · robot clearance 20 cm · lamp on top: IKEA TOKABO', sideboard(), 2.25, D - 0.2, 180, { url: LINKS.tv }),
   kallax: addItem('KALLAX 5×5 (alcove)', '182 × 39 × 182 cm', kallax(), 0.195, (SZ + D) / 2, 90, { url: LINKS.kallax }),
   billy: addItem('BILLY 40 corner bookcase', '40 × 28 × 202 cm', billy(0.4), 0.6, D - 0.14, 180, { url: LINKS.billy }),
   shelf: addItem('Wifi shelf (solid oak, 40 cm)', '40 × 15 × 3 cm at 150 cm, by the plugs', wifiShelf(), 4.2, D, 180, { url: LINKS.shelf }),
   dock: addItem('Robot vacuum dock', 'dock 22 × 12 + robot Ø35 · green = keep clear', robotDock(), 1.07, D, 180),
   table: addItem('Kingston 90 cm round table', 'Ø 90 × 77 cm', gamesTable(), 3.9, 2.6, 0, { url: LINKS.table }),
-  chair1: addItem('Windsor chair 1', '46 × 51 × 93 cm', chair(), 3.9, 1.97, 0, { url: LINKS.chair }),
-  chair2: addItem('Windsor chair 2', '46 × 51 × 93 cm', chair(), 3.27, 2.62, 90, { url: LINKS.chair }),
+  chair1: addItem('Marbury oak Windsor chair 1', '46 × 56.5 × 98.5 cm · seat 47', chair(), 3.9, 1.97, 0, { url: LINKS.chair }),
+  chair2: addItem('Marbury oak Windsor chair 2', '46 × 56.5 × 98.5 cm · seat 47', chair(), 3.27, 2.62, 90, { url: LINKS.chair }),
   armchair: addItem('EKENÄSET armchair', '64 × 78 × 76 cm · robot clearance 22 cm', armchair(), 3.92, 0.55, -39, { url: LINKS.armchair }),
   footstool: addItem('EKENÄSET footstool (IKEA SE only)', '59 × 43 × 40 cm', footstool(), 3.62, 1.14, -39, { url: LINKS.footstool }),
   arc: addItem('John Lewis metal arc lamp', 'H 175 · reach 107 · shade Ø 30', arcLamp(), 4.3, 0.15, -44, { url: LINKS.arc }),
