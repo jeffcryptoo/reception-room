@@ -19,7 +19,8 @@
   #blurb { margin-top: 6px; font-size: 11.5px; color: #d9cfc2; }
   #blurb span { color: #a99c8d; }
   #nav { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: rgba(30, 26, 22, .9); padding: 8px 10px; border-radius: 12px; max-width: 94vw; }
-  #nav button { margin: 0; font-size: 16px; padding: 6px 12px; }
+  #nav button { margin: 0; font-size: 16px; padding: 6px 12px; white-space: nowrap; }
+  #nav #modeT { font-size: 13px; }
   #navLabel { text-align: center; min-width: 220px; }
   #navLabel b { display: block; font-size: 14px; }
   #navLabel span { font-size: 11.5px; color: #b9ab9a; }
@@ -45,7 +46,7 @@
   <button id="copy">Copy layout</button><button id="reset">Reset layout</button>
   <textarea id="out" readonly></textarea>
 </div>
-<div id="nav"><button id="prev" aria-label="Previous design">◀</button><div id="navLabel"></div><button id="next" aria-label="Next design">▶</button></div>
+<div id="nav"><button id="prev" aria-label="Previous design">◀</button><div id="navLabel"></div><button id="next" aria-label="Next design">▶</button><button id="modeT" hidden>☕ Everyday</button></div>
 
 <script type="importmap">
 { "imports": {
@@ -550,6 +551,42 @@ function chair() {
   }
   return g;
 }
+// IKEA NORDEN gateleg table: 26 / 89 / 152 × 80 × 74. Leaves are 63 cm each.
+function norden() {
+  const g = new THREE.Group(), birch = mat('#d6b98f', { roughness: 0.5 }), H = 0.74;
+  box(0.26, 0.03, 0.8, birch, 0, H - 0.015, 0, g);
+  box(0.24, 0.66, 0.6, birch, 0, 0.35, 0, g);
+  for (let i = 0; i < 3; i++) for (const sz of [-1, 1]) box(0.2, 0.18, 0.01, mat('#c9a878', { roughness: 0.5 }), 0, 0.14 + i * 0.21, sz * 0.305, g);
+  const leaves = [1, -1].map(s => {
+    const pivot = new THREE.Group();
+    pivot.position.set(s * 0.13, H, 0);
+    g.add(pivot);
+    box(0.63, 0.025, 0.8, birch, s * 0.315, -0.0125, 0, pivot);
+    const legs = new THREE.Group();
+    g.add(legs);
+    for (const sz of [-1, 1]) box(0.035, H - 0.03, 0.035, birch, s * 0.62, (H - 0.03) / 2, sz * 0.3, legs);
+    return { pivot, legs, s };
+  });
+  g.userData.setLeaves = (n) => leaves.forEach(({ pivot, legs, s }, i) => {
+    const up = i < n;
+    pivot.rotation.z = up ? 0 : -s * Math.PI / 2;
+    legs.visible = up;
+  });
+  g.userData.setLeaves(2);
+  return g;
+}
+// IKEA FRÖSVI folding chair: 44 × 51 × 77, seat 46.
+function frosvi() {
+  const g = new THREE.Group(), beech = mat('#dcb88c', { roughness: 0.5 });
+  box(0.38, 0.02, 0.33, beech, 0, 0.46, 0.02, g);
+  for (const sx of [-1, 1]) {
+    const f = box(0.025, 0.5, 0.025, beech, sx * 0.19, 0.24, 0.05, g); f.rotation.x = -0.35;
+    const b = box(0.025, 0.78, 0.025, beech, sx * 0.2, 0.39, -0.08, g); b.rotation.x = 0.25;
+  }
+  box(0.4, 0.08, 0.02, beech, 0, 0.7, -0.17, g).rotation.x = 0.25;
+  box(0.4, 0.05, 0.02, beech, 0, 0.58, -0.14, g).rotation.x = 0.25;
+  return g;
+}
 // IKEA EKENÄSET armchair: 64 × 78 × 76, seat 45, arms 63, 22 cm free underneath.
 function armchair() {
   const g = new THREE.Group(), frame = mat('#3b2a20', { roughness: 0.45 }), fab = mat('#d8ccb4', { roughness: 1 });
@@ -610,6 +647,8 @@ const LINKS = {
   armchair: 'https://www.ikea.com/gb/en/p/ekenaeset-armchair-kilanda-light-beige-50533492/',
   footstool: 'https://www.ikea.com/se/en/p/ekenaeset-footstool-walnut-effect-kilanda-light-beige-90624428/',
   arc: 'https://www.johnlewis.com/john-lewis-metal-arc-floor-lamp-black-brass/p6417804',
+  norden: 'https://www.ikea.com/gb/en/p/norden-gateleg-table-birch-90423887/',
+  frosvi: 'https://www.ikea.com/gb/en/p/froesvi-folding-chair-beech-70534315/',
 };
 const IT = {
   rug: addItem('Milano cream/terracotta rug', '230 × 160 cm · 9 mm loop pile', rug(), 2.3, 1.3, 0, { flat: true, url: LINKS.rug }),
@@ -627,13 +666,18 @@ const IT = {
   armchair: addItem('EKENÄSET armchair', '64 × 78 × 76 cm · robot clearance 22 cm', armchair(), 3.92, 0.55, -39, { url: LINKS.armchair }),
   footstool: addItem('EKENÄSET footstool (IKEA SE only)', '59 × 43 × 40 cm', footstool(), 3.62, 1.14, -39, { url: LINKS.footstool }),
   arc: addItem('John Lewis metal arc lamp', 'H 175 · reach 107 · shade Ø 30', arcLamp(), 4.3, 0.15, -44, { url: LINKS.arc }),
+  norden: addItem('NORDEN gateleg table', '26 / 89 / 152 × 80 × 74 cm · seats 2–4', norden(), 2.25, 1.82, 0, { url: LINKS.norden }),
+  chair3: addItem('FRÖSVI folding chair 1', '44 × 51 × 77 cm · hangs on a hook when not used', frosvi(), 1.87, 2.45, 180, { url: LINKS.frosvi }),
+  chair4: addItem('FRÖSVI folding chair 2', '44 × 51 × 77 cm · hangs on a hook when not used', frosvi(), 2.63, 2.45, 180, { url: LINKS.frosvi }),
 };
 IT.teddy.visible = false;
+for (const k of ['norden', 'chair3', 'chair4']) IT[k].visible = false;
 const billyItem = IT.billy;
 const KEY = 'room-planner-v5-design-';
-let designIdx = 0;
+let designIdx = 0, designMode = 'everyday';
+const saveKey = () => `${KEY}${designIdx}-${designMode}`;
 function saveLayout() {
-  localStorage.setItem(KEY + designIdx, JSON.stringify(items.map(o => [o.position.x, o.position.z, o.rotation.y, o.visible])));
+  localStorage.setItem(saveKey(), JSON.stringify(items.map(o => [o.position.x, o.position.z, o.rotation.y, o.visible])));
 }
 
 // ---------- UI ----------
@@ -770,8 +814,8 @@ document.getElementById('copy').onclick = () => {
   navigator.clipboard?.writeText(out.value).catch(() => {});
 };
 document.getElementById('reset').onclick = () => {
-  localStorage.removeItem(KEY + designIdx);
-  applyDesign(designIdx);
+  localStorage.removeItem(saveKey());
+  applyDesign(designIdx, designMode);
 };
 
 // ---------- loop ----------
@@ -847,7 +891,28 @@ const DESIGNS = [
       armchair: [3.9, 2.7, -123], footstool: [3.27, 2.3, -123], arc: [4.36, 3.08, -130],
     },
   },
+  {
+    name: 'Supper Club',
+    blurb: 'A NORDEN gateleg table replaces the round one. Everyday it sits folded by the TV wall with one leaf up for two. When friends come, open both leaves under the pendant for four, and park the coffee table in the corner.',
+    sofa: 'loren', paint: 'bancha', rug: 'milano', curtains: 'sage', gallery: ['top', 2.2],
+    modes: {
+      everyday: {
+        label: 'Everyday: table folded, seats 2', leaves: 1, evening: false,
+        pos: (({ table, ...rest }) => ({ ...rest, norden: [3.95, 3.14, 90], chair1: [3.95, 2.12, 0], chair2: [3.3, 2.75, 90] }))(LAYOUT_A),
+      },
+      friends: {
+        label: 'Friends over: table open, seats 4', leaves: 2, evening: true,
+        pos: (({ table, ...rest }) => ({
+          ...rest, norden: [2.25, 1.82, 0], coffee: [3.95, 2.55, 90],
+          chair1: [1.87, 1.2, 0], chair2: [2.63, 1.2, 0], chair3: [1.87, 2.45, 180], chair4: [2.63, 2.45, 180],
+        }))(LAYOUT_A),
+      },
+    },
+  },
 ];
+const OPTIONAL = ['norden', 'chair3', 'chair4'];
+const modeBtn = document.getElementById('modeT');
+modeBtn.onclick = () => applyDesign(designIdx, designMode === 'friends' ? 'everyday' : 'friends');
 const sofaBtn = document.getElementById('sofaT');
 const syncSofaBtn = () => { sofaBtn.textContent = `Sofa: ${IT.teddy.visible ? 'OMHU TEDDY' : 'Loren'}`; };
 function setSofa(which) {
@@ -874,14 +939,19 @@ DESIGNS.forEach((d, i) => {
   b.onclick = () => applyDesign(i);
   designsEl.appendChild(b);
 });
-function applyDesign(i) {
+function applyDesign(i, mode = 'everyday') {
   designIdx = (i + DESIGNS.length) % DESIGNS.length;
   const d = DESIGNS[designIdx];
-  for (const [k, p] of Object.entries(d.pos)) {
+  designMode = d.modes ? mode : 'everyday';
+  const m = d.modes ? d.modes[designMode] : d;
+  for (const [k, p] of Object.entries(m.pos)) {
     IT[k].position.set(p[0], 0, p[1]);
     IT[k].rotation.y = THREE.MathUtils.degToRad(p[2]);
   }
-  for (const k of Object.keys(LAYOUT_A)) IT[k].visible = !(d.hide ?? []).includes(k);
+  for (const k of [...Object.keys(LAYOUT_A), ...OPTIONAL]) IT[k].visible = k in m.pos && !(d.hide ?? []).includes(k);
+  IT.norden.userData.setLeaves(m.leaves ?? 2);
+  modeBtn.hidden = !d.modes;
+  if (d.modes) modeBtn.textContent = designMode === 'friends' ? '🍽 Friends over' : '☕ Everyday';
   IT.loren.visible = d.sofa === 'loren';
   IT.teddy.visible = d.sofa === 'teddy';
   const tc = d.teddy ?? 'Rust';
@@ -895,9 +965,9 @@ function applyDesign(i) {
   galleryTop.userData.off = d.gallery[0] !== 'top';
   galleryBottom.userData.off = d.gallery[0] !== 'bottom';
   (d.gallery[0] === 'top' ? galleryTop : galleryBottom).position.x = d.gallery[1];
-  setMode(d.evening);
+  setMode(m.evening ?? d.evening);
   try {
-    const saved = JSON.parse(localStorage.getItem(KEY + designIdx));
+    const saved = JSON.parse(localStorage.getItem(saveKey()));
     if (saved?.length === items.length) saved.forEach(([x, z, r, v], j) => { items[j].position.set(x, 0, z); items[j].rotation.y = r; items[j].visible = v; });
   } catch { /* ignore bad storage */ }
   syncBilly();
@@ -906,8 +976,8 @@ function applyDesign(i) {
   [...designsEl.children].forEach((b, j) => b.classList.toggle('on', j === designIdx));
   const sofaName = IT.teddy.visible ? IT.teddy.userData.name : 'Loren sofa, burnt orange';
   blurbEl.innerHTML = `${d.blurb}<br><span>Alcove: <a href="${paint.url}" target="_blank" rel="noopener">F&amp;B ${paint.name}</a> · ${sofaName} · ${RUGS[d.rug].name} · curtains ${CURTAINS[d.curtains]}</span>`;
-  navLabel.innerHTML = `<b>${designIdx + 1} / ${DESIGNS.length} · ${d.name}</b><span>Alcove ${paint.name} · ${sofaName}</span>`;
-  history.replaceState(null, '', `#design=${designIdx + 1}`);
+  navLabel.innerHTML = `<b>${designIdx + 1} / ${DESIGNS.length} · ${d.name}</b><span>${d.modes ? `${m.label} · ` : ''}Alcove ${paint.name} · ${sofaName}</span>`;
+  history.replaceState(null, '', `#design=${designIdx + 1}${designMode === 'friends' ? '&mode=friends' : ''}`);
 }
 document.getElementById('prev').onclick = () => applyDesign(designIdx - 1);
 document.getElementById('next').onclick = () => applyDesign(designIdx + 1);
@@ -918,8 +988,9 @@ addEventListener('keydown', e => {
 
 const params = new URLSearchParams(location.search);
 go(params.get('view') in VIEWS ? params.get('view') : 'Overview · TV + library', true);
-const hashDesign = Number(new URLSearchParams(location.hash.slice(1)).get('design') ?? params.get('design'));
-applyDesign(hashDesign >= 1 && hashDesign <= DESIGNS.length ? hashDesign - 1 : 0);
+const hashParams = new URLSearchParams(location.hash.slice(1));
+const hashDesign = Number(hashParams.get('design') ?? params.get('design'));
+applyDesign(hashDesign >= 1 && hashDesign <= DESIGNS.length ? hashDesign - 1 : 0, hashParams.get('mode') === 'friends' ? 'friends' : 'everyday');
 if (params.get('mode') === 'evening') setMode(true);
 if (params.get('panel') === 'min') document.getElementById('ui').classList.add('min');
 
