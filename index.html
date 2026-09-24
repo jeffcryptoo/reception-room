@@ -352,9 +352,11 @@ function plant(p, x, y, z, s = 1, trail = false) {
   return g;
 }
 
-function compassLeg(m, x, z, h, splayZ, p) {
-  const l = mesh(new THREE.CylinderGeometry(0.018, 0.012, h / Math.cos(splayZ), 10), m, x, h / 2, z + Math.sign(z) * Math.tan(splayZ) * h / 2, p);
-  l.rotation.x = Math.sign(z) * splayZ;
+function compassLeg(m, x, z, h, splayZ, p, splayX = 0) {
+  const len = h / (Math.cos(splayZ) * Math.cos(splayX));
+  const l = mesh(new THREE.CylinderGeometry(0.019, 0.011, len, 10), m,
+    x + Math.sign(x) * Math.tan(splayX) * h / 2, h / 2, z + Math.sign(z) * Math.tan(splayZ) * h / 2, p);
+  l.rotation.set(-Math.sign(z) * splayZ, 0, Math.sign(x) * splayX);
   return l;
 }
 // Furniture Choice Loren 3 seater: 190 × 75 × 69, seat 45, arms 64, feet 17.
@@ -430,17 +432,26 @@ function rug() {
   r.rotation.x = -Math.PI / 2; r.castShadow = false;
   return g;
 }
+const walnutGrain = canvasTex(256, 128, (c, w, h) => {
+  c.fillStyle = '#86593a'; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 70; i++) {
+    c.strokeStyle = `rgba(${rand() < 0.5 ? '60,34,18' : '160,112,74'},${0.15 + rand() * 0.2})`;
+    c.lineWidth = 1 + rand() * 2;
+    const y = rand() * h;
+    c.beginPath(); c.moveTo(0, y); c.bezierCurveTo(w * 0.3, y + (rand() - 0.5) * 8, w * 0.7, y + (rand() - 0.5) * 8, w, y + (rand() - 0.5) * 4); c.stroke();
+  }
+});
 // sweeek Nepal coffee table: 110 × 59 × 39, top 110 × 39, legs 20.
 function coffeeTable() {
-  const g = new THREE.Group(), wal = mat('#6a4127', { roughness: 0.5 }), pine = mat('#b98a55', { roughness: 0.6 }), dark = mat('#2a1c14');
+  const g = new THREE.Group(), wal = mat('#7d5234', { roughness: 0.5 }), pine = mat('#8a5c3a', { roughness: 0.55 }), dark = mat('#2a1c14');
   box(1.1, 0.015, 0.39, wal, 0, 0.3825, 0, g);
   box(1.1, 0.012, 0.39, wal, 0, 0.206, 0, g);
   for (const sx of [-1, 1]) box(0.012, 0.17, 0.39, wal, sx * 0.544, 0.29, 0, g);
   box(0.012, 0.17, 0.39, wal, 0, 0.29, 0, g);
-  box(0.525, 0.16, 0.012, wal, -0.27, 0.29, 0.19, g);
+  box(0.525, 0.16, 0.012, new THREE.MeshStandardMaterial({ map: walnutGrain, roughness: 0.45 }), -0.27, 0.29, 0.19, g);
   box(0.1, 0.02, 0.005, dark, -0.27, 0.35, 0.198, g);
-  box(1.08, 0.16, 0.005, dark, 0, 0.29, -0.19, g);
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) compassLeg(pine, sx * 0.47, sz * 0.15, 0.2, 0.42, g);
+  box(1.08, 0.16, 0.005, wal, 0, 0.29, -0.19, g);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) compassLeg(pine, sx * 0.5, sz * 0.15, 0.2, 0.4, g, 0.12);
   box(0.3, 0.07, 0.3, mat('#2f4a5a'), 0.24, 0.425, 0, g).rotation.y = 0.3;
   mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.09, 20), mat('#e8e0cc', { roughness: 0.3 }), -0.3, 0.435, 0.05, g);
   return g;
@@ -448,14 +459,14 @@ function coffeeTable() {
 // sweeek Nepal 160 cm TV unit: 160 × 40 × 50, legs 20, 2 doors + open middle.
 function sideboard() {
   const g = new THREE.Group(), w = 1.6, d = 0.4;
-  const wal = mat('#6a4127', { roughness: 0.5 }), pine = mat('#b98a55', { roughness: 0.6 }), dark = mat('#2a1c14');
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) compassLeg(pine, sx * (w / 2 - 0.12), sz * 0.13, 0.2, 0.25, g);
-  compassLeg(pine, 0, -0.13, 0.2, 0.25, g);
+  const wal = mat('#7d5234', { roughness: 0.5 }), pine = mat('#8a5c3a', { roughness: 0.55 }), dark = mat('#2a1c14');
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) compassLeg(pine, sx * (w / 2 - 0.08), sz * 0.14, 0.2, 0.2, g, 0.15);
+  compassLeg(pine, 0, 0.14, 0.2, 0.2, g);
   box(1.06, 0.3, d, wal, -0.27, 0.35, 0, g);
   box(0.54, 0.015, d, wal, 0.53, 0.4925, 0, g);
   box(0.54, 0.015, d, wal, 0.53, 0.2075, 0, g);
   box(0.015, 0.3, d, wal, 0.7925, 0.35, 0, g);
-  const front = mat('#704629', { roughness: 0.45 });
+  const front = new THREE.MeshStandardMaterial({ map: walnutGrain, roughness: 0.45 });
   for (const x of [-0.53, -0.005]) {
     box(0.515, 0.27, 0.012, front, x, 0.34, d / 2 + 0.006, g);
     box(0.1, 0.022, 0.006, dark, x, 0.466, d / 2 + 0.013, g);
@@ -470,7 +481,7 @@ function sideboard() {
   cap.scale.y = 1.15;
   cap.castShadow = false;
   lamp(g, new THREE.Vector3(-0.62, 0.6, 0.08), opal, 1.2);
-  plant(g, 0.62, 0.5, 0, 1.1, true);
+  plant(g, 0.62, 0.5, -0.05, 1.1, false);
   return g;
 }
 // KALLAX insert with door, pine / woven poplar: pine frame, woven panel, finger hole.
@@ -739,6 +750,8 @@ const VIEWS = {
   'Toward sofa': [[2.8, 1.5, 3.05], [2.1, 0.7, 0.3]],
   'Wifi + games corner': [[2.5, 1.65, 1.3], [4.2, 1.0, 3.1]],
   'Robot dock': [[2.0, 1.4, 1.5], [0.9, 0.2, 3.1]],
+  'TV unit close-up': [[2.25, 0.75, 1.05], [2.25, 0.45, 3.1], 50],
+  'Coffee table close-up': [[2.05, 0.7, 2.75], [2.25, 0.25, 1.5], 50],
 };
 let tween = null;
 function go(name, instant = false) {
