@@ -29,6 +29,7 @@
   <button id="mode">Evening</button>
   <button id="billyT" class="on">Corner bookcase</button>
   <button id="hingeT">Door hinge: sofa side</button>
+  <button id="sofaT">Sofa: Loren</button>
   <div id="sel">Click furniture to select it.</div>
   <div id="help">Drag furniture = move · Q / E = rotate 15° · Esc = deselect<br>Drag empty space = orbit · scroll = zoom · right-drag = pan<br>x = cm from alcove wall · z = cm from sofa wall<br>Ceiling 240 cm (assumed)</div>
   <button id="copy">Copy layout</button><button id="reset">Reset layout</button>
@@ -335,6 +336,18 @@ function sofa() {
   box(0.02, 0.35, 0.6, quilt, w / 2 + 0.01, 0.48, 0.02, g);
   return g;
 }
+// OMHU TEDDY: 200 × 100 × 70, seat 34, seating area 130 × 65, no legs.
+function teddy() {
+  const g = new THREE.Group(), w = 2.0, d = 1.0;
+  const fab = mat('#a9532a', { roughness: 1 }), fab2 = mat('#b45f35', { roughness: 1 });
+  rbox(w, 0.17, d, fab, 0, 0.085, 0, g, 0.06);
+  rbox(w - 0.02, 0.17, d - 0.02, fab2, 0, 0.255, 0, g, 0.07);
+  rbox(w, 0.36, 0.35, fab, 0, 0.52, -d / 2 + 0.175, g, 0.16);
+  for (const sx of [-1, 1]) rbox(0.35, 0.36, d, fab, sx * (w / 2 - 0.175), 0.52, 0, g, 0.16);
+  rbox(0.4, 0.34, 0.12, mat('#c8962e', { roughness: 1 }), -0.35, 0.52, -0.25, g, 0.05).rotation.set(-0.25, 0, 0.12);
+  rbox(0.38, 0.32, 0.12, mat('#6d7446', { roughness: 1 }), 0.37, 0.51, -0.25, g, 0.05).rotation.set(-0.25, 0, -0.1);
+  return g;
+}
 // Milano cream / terracotta wool loop rug, 160 × 230, 9 mm pile.
 function rug() {
   const g = new THREE.Group();
@@ -532,6 +545,7 @@ function addItem(name, dims, g, x, z, rot = 0, extra = {}) {
 const LINKS = {
   rug: 'https://www.themodernrug.co.uk/milano-terracotta-160-230.html',
   sofa: 'https://www.furniturechoice.co.uk/p/loren-3-seater-sofa-burnt-orange-classic-velvet-fs10004069/',
+  teddy: 'https://uk.omhucph.com/products/teddy',
   coffee: 'https://www.sweeek.co.uk/product/vintage-walnut-wood-coffee-table-1-drawer-2-niches',
   tv: 'https://www.sweeek.co.uk/product/tv-stand-walnut-wood-decor-2-doors',
   kallax: 'https://www.ikea.com/gb/en/p/kallax-shelving-unit-white-stained-oak-effect-90324509/',
@@ -544,8 +558,10 @@ const LINKS = {
   arc: 'https://www.johnlewis.com/john-lewis-metal-arc-floor-lamp-black-brass/p6417804',
 };
 addItem('Milano cream/terracotta rug', '230 × 160 cm · 9 mm loop pile', rug(), 2.3, 1.3, 0, { flat: true, url: LINKS.rug });
-addItem('Loren 3 seater, burnt orange', '190 × 75 × 69 cm · robot clearance 17 cm', sofa(), 2.25, 0.375, 0, { url: LINKS.sofa });
-addItem('Nepal coffee table', '110 × 59 × 39 cm · robot clearance 20 cm', coffeeTable(), 2.25, 1.495, 0, { url: LINKS.coffee });
+const lorenItem = addItem('Loren 3 seater, burnt orange', '190 × 75 × 69 cm · robot clearance 17 cm', sofa(), 2.25, 0.375, 0, { url: LINKS.sofa });
+const teddyItem = addItem('OMHU TEDDY sofa, rust', '200 × 100 × 70 cm · seat 34 · no legs (sits on floor)', teddy(), 2.25, 0.5, 0, { url: LINKS.teddy });
+teddyItem.visible = false;
+const coffeeItem = addItem('Nepal coffee table', '110 × 59 × 39 cm · robot clearance 20 cm', coffeeTable(), 2.25, 1.495, 0, { url: LINKS.coffee });
 addItem('Nepal 160 cm TV unit + 55" TV', '160 × 40 × 50 cm, TV 123 × 71 · robot clearance 20 cm', sideboard(), 2.25, D - 0.2, 180, { url: LINKS.tv });
 addItem('KALLAX 5×5 (alcove)', '182 × 39 × 182 cm', kallax(), 0.195, (SZ + D) / 2, 90, { url: LINKS.kallax });
 const billyItem = addItem('BILLY 40 corner bookcase', '40 × 28 × 202 cm', billy(0.4), 0.6, D - 0.14, 180, { url: LINKS.billy });
@@ -558,7 +574,7 @@ addItem('EKENÄSET armchair', '64 × 78 × 76 cm · robot clearance 22 cm', armc
 addItem('EKENÄSET footstool (IKEA SE only)', '59 × 43 × 40 cm', footstool(), 3.62, 1.14, -39, { url: LINKS.footstool });
 addItem('John Lewis metal arc lamp', 'H 175 · reach 107 · shade Ø 30', arcLamp(), 4.3, 0.15, -44, { url: LINKS.arc });
 
-const KEY = 'room-planner-v3';
+const KEY = 'room-planner-v4';
 function saveLayout() {
   localStorage.setItem(KEY, JSON.stringify(items.map(o => [o.position.x, o.position.z, o.rotation.y, o.visible])));
 }
@@ -702,7 +718,7 @@ document.getElementById('copy').onclick = () => {
 };
 document.getElementById('reset').onclick = () => {
   for (const o of items) { const { x, z, rot } = o.userData.home; o.position.set(x, 0, z); o.rotation.y = THREE.MathUtils.degToRad(rot); o.visible = true; }
-  syncBilly(); localStorage.removeItem(KEY); describe();
+  syncBilly(); setSofa('loren'); localStorage.removeItem(KEY); describe();
 };
 
 // ---------- loop ----------
@@ -722,6 +738,21 @@ addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; cam
 const params = new URLSearchParams(location.search);
 go(params.get('view') in VIEWS ? params.get('view') : 'Overview · TV + library', true);
 setMode(params.get('mode') === 'evening');
+
+const sofaBtn = document.getElementById('sofaT');
+function setSofa(which) {
+  const isTeddy = which === 'teddy';
+  lorenItem.visible = !isTeddy;
+  teddyItem.visible = isTeddy;
+  coffeeItem.position.z = isTeddy ? 1.695 : 1.495;
+  sofaBtn.textContent = `Sofa: ${isTeddy ? 'OMHU TEDDY' : 'Loren'}`;
+  if (sel && !sel.visible) select(null);
+  describe();
+  saveLayout();
+}
+sofaBtn.onclick = () => setSofa(teddyItem.visible ? 'loren' : 'teddy');
+if (params.get('sofa') === 'teddy') setSofa('teddy');
+else sofaBtn.textContent = `Sofa: ${teddyItem.visible ? 'OMHU TEDDY' : 'Loren'}`;
 if (params.get('panel') === 'min') document.getElementById('ui').classList.add('min');
 
 renderer.setAnimationLoop((now) => {
