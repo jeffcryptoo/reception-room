@@ -732,7 +732,7 @@ const IT = {
 IT.teddy.visible = false;
 for (const k of ['norden', 'chair3', 'chair4']) IT[k].visible = false;
 const billyItem = IT.billy;
-const KEY = 'room-planner-v5-design-';
+const KEY = 'room-planner-v6-design-';
 let designIdx = 0, designMode = 'everyday';
 const saveKey = () => `${KEY}${designIdx}-${designMode}`;
 function saveLayout() {
@@ -751,7 +751,7 @@ const VIEWS = {
   'Wifi + games corner': [[2.5, 1.65, 1.3], [4.2, 1.0, 3.1]],
   'Robot dock': [[2.0, 1.4, 1.5], [0.9, 0.2, 3.1]],
   'TV unit close-up': [[2.25, 0.75, 1.05], [2.25, 0.45, 3.1], 50],
-  'Coffee table close-up': [[2.05, 0.7, 2.75], [2.25, 0.25, 1.5], 50],
+  'Coffee table close-up': [[2.45, 0.9, 0.5], [2.25, 0.25, 1.5], 50],
 };
 let tween = null;
 function go(name, instant = false) {
@@ -909,7 +909,7 @@ const PAINTS = {
 const CURTAINS = { sage: 'sage gingham (linked)', rust: 'rust gingham (colour idea, not sourced)', mustard: 'mustard gingham (colour idea, not sourced)', linen: 'plain oat linen (colour idea, not sourced)' };
 const TEDDY_COLOURS = { Rust: '#a9532a', Mustard: '#c8952b', Olive: '#6f6b3c' };
 const LAYOUT_A = {
-  rug: [2.3, 1.3, 0], loren: [2.25, 0.375, 0], teddy: [2.25, 0.5, 0], coffee: [2.25, 1.495, 0], tv: [2.25, 3.08, 180], billy: [0.6, 3.14, 180],
+  rug: [2.3, 1.3, 0], loren: [2.25, 0.375, 0], teddy: [2.25, 0.5, 0], coffee: [2.25, 1.495, 180], tv: [2.25, 3.08, 180], billy: [0.6, 3.14, 180],
   table: [3.9, 2.6, 0], chair1: [3.9, 1.97, 0], chair2: [3.27, 2.62, 90], armchair: [3.92, 0.55, -39], footstool: [3.62, 1.14, -39], arc: [4.3, 0.15, -44],
 };
 const DESIGNS = [
@@ -923,7 +923,7 @@ const DESIGNS = [
     name: 'Teddy Snug',
     blurb: 'Same layout, but a low mustard TEDDY and a deep blue alcove. Best at night with the lamps on.',
     sofa: 'teddy', teddy: 'Mustard', paint: 'hague', rug: 'albany', curtains: 'rust', gallery: ['top', 2.2], evening: true,
-    pos: { ...LAYOUT_A, rug: [2.3, 1.45, 0], coffee: [2.25, 1.695, 0], footstool: [3.68, 1.2, -39] },
+    pos: { ...LAYOUT_A, rug: [2.3, 1.45, 0], coffee: [2.25, 1.695, 180], footstool: [3.68, 1.2, -39] },
   },
   {
     name: 'Sofa by the Books',
@@ -939,7 +939,7 @@ const DESIGNS = [
     blurb: 'An olive TEDDY slides into the window corner with the TV opposite. The games table moves next to the library, the reading chair sits by the door.',
     sofa: 'teddy', teddy: 'Olive', paint: 'plaster', rug: 'milano', curtains: 'sage', gallery: ['top', 3.28], evening: true, hide: ['footstool'],
     pos: {
-      ...LAYOUT_A, teddy: [3.28, 0.5, 0], loren: [3.28, 0.375, 0], coffee: [3.28, 1.695, 0], tv: [3.28, 3.08, 180], rug: [3.2, 1.4, 0],
+      ...LAYOUT_A, teddy: [3.28, 0.5, 0], loren: [3.28, 0.375, 0], coffee: [3.28, 1.695, 180], tv: [3.28, 3.08, 180], rug: [3.2, 1.4, 0],
       armchair: [1.62, 0.5, 0], arc: [2.1, 0.14, -36], table: [1.35, 2.15, 0], chair1: [1.35, 1.55, 0], chair2: [1.98, 2.15, -90],
     },
   },
@@ -964,7 +964,7 @@ const DESIGNS = [
       friends: {
         label: 'Friends over: table open, seats 4', leaves: 2, evening: true,
         pos: (({ table, ...rest }) => ({
-          ...rest, norden: [2.25, 1.82, 0], coffee: [3.95, 2.55, 90],
+          ...rest, norden: [2.25, 1.82, 0], coffee: [3.95, 2.55, -90],
           chair1: [1.87, 1.2, 0], chair2: [2.63, 1.2, 0], chair3: [1.87, 2.45, 180], chair4: [2.63, 2.45, 180],
         }))(LAYOUT_A),
       },
