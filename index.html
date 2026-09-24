@@ -15,7 +15,14 @@
   button.on { background: #b5652d; border-color: #b5652d; }
   #sel { margin-top: 10px; padding-top: 8px; border-top: 1px solid #4a423a; min-height: 70px; white-space: pre-line; }
   #sel b { color: #f0b07a; }
-  #sel a { color: #9fd3a8; }
+  #sel a, #blurb a { color: #9fd3a8; }
+  #blurb { margin-top: 6px; font-size: 11.5px; color: #d9cfc2; }
+  #blurb span { color: #a99c8d; }
+  #nav { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: rgba(30, 26, 22, .9); padding: 8px 10px; border-radius: 12px; max-width: 94vw; }
+  #nav button { margin: 0; font-size: 16px; padding: 6px 12px; }
+  #navLabel { text-align: center; min-width: 220px; }
+  #navLabel b { display: block; font-size: 14px; }
+  #navLabel span { font-size: 11.5px; color: #b9ab9a; }
   #help { color: #a99c8d; font-size: 11.5px; margin-top: 8px; }
   textarea { width: 100%; box-sizing: border-box; height: 90px; font: 11px ui-monospace, monospace; display: none; margin-top: 6px; background: #221e1a; color: #ddd; border: 1px solid #4a423a; }
 </style>
@@ -23,6 +30,9 @@
 <body>
 <div id="ui">
   <h1 id="title">Reception room · 448 × 328 cm ▾</h1>
+  <div class="lbl">Design</div>
+  <div id="designs"></div>
+  <div id="blurb"></div>
   <div class="lbl">View</div>
   <div id="views"></div>
   <div class="lbl">Scene</div>
@@ -35,6 +45,7 @@
   <button id="copy">Copy layout</button><button id="reset">Reset layout</button>
   <textarea id="out" readonly></textarea>
 </div>
+<div id="nav"><button id="prev" aria-label="Previous design">◀</button><div id="navLabel"></div><button id="next" aria-label="Next design">▶</button></div>
 
 <script type="importmap">
 { "imports": {
@@ -146,12 +157,12 @@ function makeWall(x1, z1, x2, z2, color, { holes = [], door } = {}) {
   walls.push(w);
   return w;
 }
-const WALL = '#efe8dc', OLIVE = '#5d6843';
+const WALL = '#efe8dc', OLIVE = '#676a49';
 const wTop = makeWall(W, 0, SX, 0, WALL);
 makeWall(SX, 0, SX, SZ, WALL, { door: [DOOR[0], DOOR[1], 2.0] });
 makeWall(SX, SZ, 0, SZ, WALL);
-makeWall(0, SZ, 0, D, OLIVE);
-makeWall(0, D, W, D, WALL);
+const wAlcove = makeWall(0, SZ, 0, D, OLIVE);
+const wBottom = makeWall(0, D, W, D, WALL);
 const wWin = makeWall(W, D, W, 0, WALL, { holes: WIN.map(([a, b]) => [D - b, SILL, D - a, WIN_TOP]) });
 const attach = (w, o) => { w.attached.push(o); return o; };
 
@@ -181,22 +192,37 @@ for (const [za, zb] of WIN) {
   box(0.16, 0.03, wz + 0.1, white, W - 0.05, SILL - 0.015, zc, g);
 }
 attach(wWin, box(0.08, 0.45, 0.8, mat('#f2f0ea', { roughness: 0.4 }), W - 0.045, 0.375, 1.5));
-const gingham = canvasTex(128, 128, (g) => {
-  g.fillStyle = '#efe6d2'; g.fillRect(0, 0, 128, 128);
-  g.fillStyle = 'rgba(118,138,96,.45)'; g.fillRect(0, 0, 64, 128); g.fillRect(0, 0, 128, 64);
-}, [1, 1]);
+const CURTAIN_TEX = {
+  sage: canvasTex(128, 128, (g) => { g.fillStyle = '#efe6d2'; g.fillRect(0, 0, 128, 128); g.fillStyle = 'rgba(118,138,96,.45)'; g.fillRect(0, 0, 64, 128); g.fillRect(0, 0, 128, 64); }, [1, 1]),
+  rust: canvasTex(128, 128, (g) => { g.fillStyle = '#efe4d2'; g.fillRect(0, 0, 128, 128); g.fillStyle = 'rgba(170,84,44,.45)'; g.fillRect(0, 0, 64, 128); g.fillRect(0, 0, 128, 64); }, [1, 1]),
+  mustard: canvasTex(128, 128, (g) => { g.fillStyle = '#f1e8d4'; g.fillRect(0, 0, 128, 128); g.fillStyle = 'rgba(200,150,46,.5)'; g.fillRect(0, 0, 64, 128); g.fillRect(0, 0, 128, 64); }, [1, 1]),
+  linen: canvasTex(128, 128, (g) => { g.fillStyle = '#e6dac4'; g.fillRect(0, 0, 128, 128); for (let i = 0; i < 400; i++) { g.fillStyle = `rgba(120,100,70,${0.05 + rand() * 0.08})`; g.fillRect(rand() * 128, rand() * 128, 1, 6); } }, [1, 1]),
+};
+const curtainMats = [];
+function setCurtains(style) {
+  for (const m of curtainMats) {
+    const t = CURTAIN_TEX[style].clone();
+    t.needsUpdate = true;
+    t.repeat.set(m.userData.width / 0.06, DROP / 0.06);
+    m.map = t;
+    m.needsUpdate = true;
+  }
+}
 const POLE_Y = 2.22, DROP = 1.37;
 function curtain(zc, width) {
   const geo = new THREE.PlaneGeometry(width, DROP, 28, 1);
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setZ(i, Math.sin((pos.getX(i) / width) * Math.PI * 7) * 0.025);
   geo.computeVertexNormals();
-  const t = gingham.clone(); t.needsUpdate = true; t.repeat.set(width / 0.06, DROP / 0.06);
-  const c = mesh(geo, new THREE.MeshStandardMaterial({ map: t, roughness: 1, side: THREE.DoubleSide }), W - 0.13, POLE_Y - DROP / 2, zc);
+  const m = new THREE.MeshStandardMaterial({ roughness: 1, side: THREE.DoubleSide });
+  m.userData.width = width;
+  curtainMats.push(m);
+  const c = mesh(geo, m, W - 0.13, POLE_Y - DROP / 2, zc);
   c.rotation.y = -Math.PI / 2;
   attach(wWin, c);
 }
 for (const [za, zb] of WIN) { curtain(za - 0.12, 0.32); curtain(zb + 0.12, 0.32); }
+setCurtains('sage');
 const brass = mat('#b08d57', { roughness: 0.35, metalness: 0.8 });
 const pole = attach(wWin, mesh(new THREE.CylinderGeometry(0.014, 0.014, 3.08, 12), mat('#8a5a32', { roughness: 0.5 }), W - 0.13, POLE_Y, D / 2));
 pole.rotation.x = Math.PI / 2;
@@ -244,12 +270,22 @@ const art = (kind) => canvasTex(256, 320, (g, w, h) => {
     for (const [c, x, y, r] of [['#c8962e', 0.35, 0.35, 60], ['#a24e2c', 0.62, 0.55, 48], ['#2f5a5a', 0.4, 0.72, 38]]) { g.fillStyle = c; g.beginPath(); g.arc(w * x, h * y, r, 0, 7); g.fill(); }
   }
 });
-for (const [x, y, w, h, kind] of [[1.72, 1.42, 0.36, 0.46, 'land'], [2.2, 1.5, 0.46, 0.34, 'mcm'], [2.66, 1.4, 0.3, 0.4, 'leaf'], [2.2, 1.14, 0.3, 0.2, 'leaf'], [1.72, 1.08, 0.22, 0.18, 'mcm'], [2.66, 1.1, 0.22, 0.14, 'land']]) {
-  const g = attach(wTop, new THREE.Group()); scene.add(g);
-  box(w, h, 0.025, mat('#5a371f', { roughness: 0.5 }), x, y, 0.0125, g);
-  const a = mesh(new THREE.PlaneGeometry(w - 0.04, h - 0.04), new THREE.MeshStandardMaterial({ map: art(kind), roughness: 0.9 }), x, y, 0.026, g);
-  a.castShadow = false;
+const GALLERY = [[-0.48, 1.42, 0.36, 0.46, 'land'], [0, 1.5, 0.46, 0.34, 'mcm'], [0.46, 1.4, 0.3, 0.4, 'leaf'], [0, 1.14, 0.3, 0.2, 'leaf'], [-0.48, 1.08, 0.22, 0.18, 'mcm'], [0.46, 1.1, 0.22, 0.14, 'land']];
+function gallery(wall, z, flip) {
+  const g = attach(wall, new THREE.Group());
+  scene.add(g);
+  g.position.z = z;
+  if (flip) g.rotation.y = Math.PI;
+  for (const [x, y, w, h, kind] of GALLERY) {
+    box(w, h, 0.025, mat('#5a371f', { roughness: 0.5 }), x, y, 0.0125, g);
+    mesh(new THREE.PlaneGeometry(w - 0.04, h - 0.04), new THREE.MeshStandardMaterial({ map: art(kind), roughness: 0.9 }), x, y, 0.026, g).castShadow = false;
+  }
+  return g;
 }
+const galleryTop = gallery(wTop, 0, false);
+galleryTop.position.x = 2.2;
+const galleryBottom = gallery(wBottom, D, true);
+galleryBottom.userData.off = true;
 
 // ---------- lights ----------
 const hemi = new THREE.HemisphereLight('#fff4e6', '#d6c2a6', 1.2);
@@ -339,7 +375,8 @@ function sofa() {
 // OMHU TEDDY: 200 × 100 × 70, seat 34, seating area 130 × 65, no legs.
 function teddy() {
   const g = new THREE.Group(), w = 2.0, d = 1.0;
-  const fab = mat('#a9532a', { roughness: 1 }), fab2 = mat('#b45f35', { roughness: 1 });
+  const fab = new THREE.MeshStandardMaterial({ color: '#a9532a', roughness: 1 }), fab2 = new THREE.MeshStandardMaterial({ color: '#b45f35', roughness: 1 });
+  g.userData.setColor = (hex) => { fab.color.set(hex); fab2.color.set(hex).offsetHSL(0, 0, 0.03); };
   rbox(w, 0.17, d, fab, 0, 0.085, 0, g, 0.06);
   rbox(w - 0.02, 0.17, d - 0.02, fab2, 0, 0.255, 0, g, 0.07);
   rbox(w, 0.36, 0.35, fab, 0, 0.52, -d / 2 + 0.175, g, 0.16);
@@ -348,17 +385,34 @@ function teddy() {
   rbox(0.38, 0.32, 0.12, mat('#6d7446', { roughness: 1 }), 0.37, 0.51, -0.25, g, 0.05).rotation.set(-0.25, 0, -0.1);
   return g;
 }
-// Milano cream / terracotta wool loop rug, 160 × 230, 9 mm pile.
-function rug() {
-  const g = new THREE.Group();
-  const tex = canvasTex(1150, 800, (c, w, h) => {
+const RUG_TEX = {
+  // Milano cream / terracotta wool loop rug, 9 mm pile.
+  milano: () => canvasTex(1150, 800, (c, w, h) => {
     c.fillStyle = '#e8dfcd'; c.fillRect(0, 0, w, h);
     for (let i = 0; i < 9000; i++) {
       c.fillStyle = rand() < 0.7 ? 'rgba(176,82,44,.55)' : 'rgba(120,96,70,.35)';
       c.fillRect(rand() * w, rand() * h, 3 + rand() * 7, 2);
     }
-  });
-  const r = mesh(new THREE.PlaneGeometry(2.3, 1.6), new THREE.MeshStandardMaterial({ map: tex, roughness: 1 }), 0, 0.006, 0, g);
+  }),
+  // Albany Grid rust / cream wool rug, 12 mm pile.
+  albany: () => canvasTex(1150, 800, (c, w, h) => {
+    c.fillStyle = '#a9542e'; c.fillRect(0, 0, w, h);
+    c.strokeStyle = '#eadfca'; c.lineWidth = 6;
+    for (let x = 40; x < w; x += 110) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke(); }
+    for (let y = 40; y < h; y += 110) { c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); }
+  }),
+  // Bowman cream wool rug with border, 25 mm pile.
+  bowman: () => canvasTex(1150, 800, (c, w, h) => {
+    c.fillStyle = '#d9ccb2'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#ece3d0'; c.fillRect(70, 70, w - 140, h - 140);
+  }),
+};
+const rugTexCache = {};
+function rug() {
+  const g = new THREE.Group();
+  const m = new THREE.MeshStandardMaterial({ map: (rugTexCache.milano = RUG_TEX.milano()), roughness: 1 });
+  g.userData.setStyle = (style) => { m.map = rugTexCache[style] ??= RUG_TEX[style](); m.needsUpdate = true; };
+  const r = mesh(new THREE.PlaneGeometry(2.3, 1.6), m, 0, 0.006, 0, g);
   r.rotation.x = -Math.PI / 2; r.castShadow = false;
   return g;
 }
@@ -557,31 +611,30 @@ const LINKS = {
   footstool: 'https://www.ikea.com/se/en/p/ekenaeset-footstool-walnut-effect-kilanda-light-beige-90624428/',
   arc: 'https://www.johnlewis.com/john-lewis-metal-arc-floor-lamp-black-brass/p6417804',
 };
-addItem('Milano cream/terracotta rug', '230 × 160 cm · 9 mm loop pile', rug(), 2.3, 1.3, 0, { flat: true, url: LINKS.rug });
-const lorenItem = addItem('Loren 3 seater, burnt orange', '190 × 75 × 69 cm · robot clearance 17 cm', sofa(), 2.25, 0.375, 0, { url: LINKS.sofa });
-const teddyItem = addItem('OMHU TEDDY sofa, rust', '200 × 100 × 70 cm · seat 34 · no legs (sits on floor)', teddy(), 2.25, 0.5, 0, { url: LINKS.teddy });
-teddyItem.visible = false;
-const coffeeItem = addItem('Nepal coffee table', '110 × 59 × 39 cm · robot clearance 20 cm', coffeeTable(), 2.25, 1.495, 0, { url: LINKS.coffee });
-addItem('Nepal 160 cm TV unit + 55" TV', '160 × 40 × 50 cm, TV 123 × 71 · robot clearance 20 cm', sideboard(), 2.25, D - 0.2, 180, { url: LINKS.tv });
-addItem('KALLAX 5×5 (alcove)', '182 × 39 × 182 cm', kallax(), 0.195, (SZ + D) / 2, 90, { url: LINKS.kallax });
-const billyItem = addItem('BILLY 40 corner bookcase', '40 × 28 × 202 cm', billy(0.4), 0.6, D - 0.14, 180, { url: LINKS.billy });
-addItem('Wifi shelf (solid oak, 40 cm)', '40 × 15 × 3 cm at 150 cm, by the plugs', wifiShelf(), 4.2, D, 180, { url: LINKS.shelf });
-addItem('Robot vacuum dock', 'dock 22 × 12 + robot Ø35 · green = keep clear', robotDock(), 1.07, D, 180);
-addItem('Kingston 90 cm round table', 'Ø 90 × 77 cm', gamesTable(), 3.95, 2.6, 0, { url: LINKS.table });
-addItem('Windsor chair 1', '46 × 51 × 93 cm', chair(), 3.95, 1.97, 0, { url: LINKS.chair });
-addItem('Windsor chair 2', '46 × 51 × 93 cm', chair(), 3.32, 2.62, 90, { url: LINKS.chair });
-addItem('EKENÄSET armchair', '64 × 78 × 76 cm · robot clearance 22 cm', armchair(), 3.92, 0.55, -39, { url: LINKS.armchair });
-addItem('EKENÄSET footstool (IKEA SE only)', '59 × 43 × 40 cm', footstool(), 3.62, 1.14, -39, { url: LINKS.footstool });
-addItem('John Lewis metal arc lamp', 'H 175 · reach 107 · shade Ø 30', arcLamp(), 4.3, 0.15, -44, { url: LINKS.arc });
-
-const KEY = 'room-planner-v4';
+const IT = {
+  rug: addItem('Milano cream/terracotta rug', '230 × 160 cm · 9 mm loop pile', rug(), 2.3, 1.3, 0, { flat: true, url: LINKS.rug }),
+  loren: addItem('Loren 3 seater, burnt orange', '190 × 75 × 69 cm · robot clearance 17 cm', sofa(), 2.25, 0.375, 0, { url: LINKS.sofa }),
+  teddy: addItem('OMHU TEDDY sofa, rust', '200 × 100 × 70 cm · seat 34 · no legs (sits on floor)', teddy(), 2.25, 0.5, 0, { url: LINKS.teddy }),
+  coffee: addItem('Nepal coffee table', '110 × 59 × 39 cm · robot clearance 20 cm', coffeeTable(), 2.25, 1.495, 0, { url: LINKS.coffee }),
+  tv: addItem('Nepal 160 cm TV unit + 55" TV', '160 × 40 × 50 cm, TV 123 × 71 · robot clearance 20 cm', sideboard(), 2.25, D - 0.2, 180, { url: LINKS.tv }),
+  kallax: addItem('KALLAX 5×5 (alcove)', '182 × 39 × 182 cm', kallax(), 0.195, (SZ + D) / 2, 90, { url: LINKS.kallax }),
+  billy: addItem('BILLY 40 corner bookcase', '40 × 28 × 202 cm', billy(0.4), 0.6, D - 0.14, 180, { url: LINKS.billy }),
+  shelf: addItem('Wifi shelf (solid oak, 40 cm)', '40 × 15 × 3 cm at 150 cm, by the plugs', wifiShelf(), 4.2, D, 180, { url: LINKS.shelf }),
+  dock: addItem('Robot vacuum dock', 'dock 22 × 12 + robot Ø35 · green = keep clear', robotDock(), 1.07, D, 180),
+  table: addItem('Kingston 90 cm round table', 'Ø 90 × 77 cm', gamesTable(), 3.9, 2.6, 0, { url: LINKS.table }),
+  chair1: addItem('Windsor chair 1', '46 × 51 × 93 cm', chair(), 3.9, 1.97, 0, { url: LINKS.chair }),
+  chair2: addItem('Windsor chair 2', '46 × 51 × 93 cm', chair(), 3.27, 2.62, 90, { url: LINKS.chair }),
+  armchair: addItem('EKENÄSET armchair', '64 × 78 × 76 cm · robot clearance 22 cm', armchair(), 3.92, 0.55, -39, { url: LINKS.armchair }),
+  footstool: addItem('EKENÄSET footstool (IKEA SE only)', '59 × 43 × 40 cm', footstool(), 3.62, 1.14, -39, { url: LINKS.footstool }),
+  arc: addItem('John Lewis metal arc lamp', 'H 175 · reach 107 · shade Ø 30', arcLamp(), 4.3, 0.15, -44, { url: LINKS.arc }),
+};
+IT.teddy.visible = false;
+const billyItem = IT.billy;
+const KEY = 'room-planner-v5-design-';
+let designIdx = 0;
 function saveLayout() {
-  localStorage.setItem(KEY, JSON.stringify(items.map(o => [o.position.x, o.position.z, o.rotation.y, o.visible])));
+  localStorage.setItem(KEY + designIdx, JSON.stringify(items.map(o => [o.position.x, o.position.z, o.rotation.y, o.visible])));
 }
-try {
-  const saved = JSON.parse(localStorage.getItem(KEY));
-  if (saved?.length === items.length) saved.forEach(([x, z, r, v], i) => { items[i].position.set(x, 0, z); items[i].rotation.y = r; items[i].visible = v; });
-} catch { /* ignore bad storage */ }
 
 // ---------- UI ----------
 const VIEWS = {
@@ -717,8 +770,8 @@ document.getElementById('copy').onclick = () => {
   navigator.clipboard?.writeText(out.value).catch(() => {});
 };
 document.getElementById('reset').onclick = () => {
-  for (const o of items) { const { x, z, rot } = o.userData.home; o.position.set(x, 0, z); o.rotation.y = THREE.MathUtils.degToRad(rot); o.visible = true; }
-  syncBilly(); setSofa('loren'); localStorage.removeItem(KEY); describe();
+  localStorage.removeItem(KEY + designIdx);
+  applyDesign(designIdx);
 };
 
 // ---------- loop ----------
@@ -728,31 +781,146 @@ function updateCutaway() {
   for (const w of walls) {
     const show = inside || (c.x - w.p.x) * w.n.x + (c.z - w.p.y) * w.n.y > 0;
     w.mesh.material = show ? w.material : GHOST;
-    for (const a of w.attached) a.visible = show;
+    for (const a of w.attached) a.visible = show && !a.userData.off;
   }
   ceiling.material = inside && c.y < H ? ceilMat : GHOST;
   skyPlane.visible &&= c.y < H;
 }
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
-const params = new URLSearchParams(location.search);
-go(params.get('view') in VIEWS ? params.get('view') : 'Overview · TV + library', true);
-setMode(params.get('mode') === 'evening');
-
+// ---------- designs ----------
+const RUGS = {
+  milano: { name: 'Milano cream/terracotta rug', dims: '230 × 160 cm · 9 mm loop pile', url: LINKS.rug },
+  albany: { name: 'Albany Grid rust/cream rug', dims: '230 × 160 cm · 12 mm pile', url: 'https://www.ruglove.co.uk/products/albany-grid-rust-cream-rug' },
+  bowman: { name: 'Bowman cream border rug', dims: '230 × 160 cm · 25 mm pile (thick, check robot)', url: 'https://onlinehomeimprovements.co.uk/product/indoor-project/modern-cream-rug-with-border-in-pure-wool-choice-of-sizes/' },
+};
+const PAINTS = {
+  bancha: { name: 'Bancha No.298', hex: '#676a49', url: 'https://www.farrow-ball.com/paint/bancha' },
+  hague: { name: 'Hague Blue No.30', hex: '#3d4e57', url: 'https://www.farrow-ball.com/paint/hague-blue' },
+  redEarth: { name: 'Red Earth No.64', hex: '#c57b67', url: 'https://www.farrow-ball.com/paint/red-earth' },
+  plaster: { name: 'Setting Plaster No.231', hex: '#dfc2af', url: 'https://www.farrow-ball.com/paint/setting-plaster' },
+  lichen: { name: 'Lichen No.19', hex: '#a1a189', url: 'https://www.farrow-ball.com/paint/lichen' },
+};
+const CURTAINS = { sage: 'sage gingham (linked)', rust: 'rust gingham (colour idea, not sourced)', mustard: 'mustard gingham (colour idea, not sourced)', linen: 'plain oat linen (colour idea, not sourced)' };
+const TEDDY_COLOURS = { Rust: '#a9532a', Mustard: '#c8952b', Olive: '#6f6b3c' };
+const LAYOUT_A = {
+  rug: [2.3, 1.3, 0], loren: [2.25, 0.375, 0], teddy: [2.25, 0.5, 0], coffee: [2.25, 1.495, 0], tv: [2.25, 3.08, 180], billy: [0.6, 3.14, 180],
+  table: [3.9, 2.6, 0], chair1: [3.9, 1.97, 0], chair2: [3.27, 2.62, 90], armchair: [3.92, 0.55, -39], footstool: [3.62, 1.14, -39], arc: [4.3, 0.15, -44],
+};
+const DESIGNS = [
+  {
+    name: 'Olive Library',
+    blurb: 'The original plan. Sofa faces the TV, books in the green alcove, games table in the sunny corner by the router.',
+    sofa: 'loren', paint: 'bancha', rug: 'milano', curtains: 'sage', gallery: ['top', 2.2], evening: false,
+    pos: LAYOUT_A,
+  },
+  {
+    name: 'Teddy Snug',
+    blurb: 'Same layout, but a low mustard TEDDY and a deep blue alcove. Best at night with the lamps on.',
+    sofa: 'teddy', teddy: 'Mustard', paint: 'hague', rug: 'albany', curtains: 'rust', gallery: ['top', 2.2], evening: true,
+    pos: { ...LAYOUT_A, rug: [2.3, 1.45, 0], coffee: [2.25, 1.695, 0], footstool: [3.68, 1.2, -39] },
+  },
+  {
+    name: 'Sofa by the Books',
+    blurb: 'Flipped: the sofa backs onto the TV wall next to the library, the TV moves to the door wall. The gallery follows the sofa.',
+    sofa: 'loren', paint: 'redEarth', rug: 'bowman', curtains: 'linen', gallery: ['bottom', 2.36], evening: false,
+    pos: {
+      ...LAYOUT_A, tv: [2.36, 0.2, 0], loren: [2.36, 2.905, 180], teddy: [2.36, 2.78, 180], coffee: [2.36, 1.785, 0], rug: [2.36, 1.85, 0],
+      armchair: [3.92, 0.55, -50], footstool: [3.37, 1.02, -50], chair1: [3.95, 1.95, 0], chair2: [3.4, 2.22, 57],
+    },
+  },
+  {
+    name: 'Corner Cinema',
+    blurb: 'An olive TEDDY slides into the window corner with the TV opposite. The games table moves next to the library, the reading chair sits by the door.',
+    sofa: 'teddy', teddy: 'Olive', paint: 'plaster', rug: 'milano', curtains: 'sage', gallery: ['top', 3.28], evening: true, hide: ['footstool'],
+    pos: {
+      ...LAYOUT_A, teddy: [3.28, 0.5, 0], loren: [3.28, 0.375, 0], coffee: [3.28, 1.695, 0], tv: [3.28, 3.08, 180], rug: [3.2, 1.4, 0],
+      armchair: [1.62, 0.5, 0], arc: [2.1, 0.14, -36], table: [1.35, 2.15, 0], chair1: [1.35, 1.55, 0], chair2: [1.98, 2.15, -90],
+    },
+  },
+  {
+    name: 'Games by the Window',
+    blurb: 'The games table takes the bright window corner. The reading nook moves under the router with its own arc lamp.',
+    sofa: 'loren', paint: 'lichen', rug: 'albany', curtains: 'mustard', gallery: ['top', 2.2], evening: false,
+    pos: {
+      ...LAYOUT_A, table: [3.85, 0.62, 0], chair1: [3.85, 1.28, 180], chair2: [3.35, 1.12, 135],
+      armchair: [3.9, 2.7, -123], footstool: [3.27, 2.3, -123], arc: [4.36, 3.08, -130],
+    },
+  },
+];
 const sofaBtn = document.getElementById('sofaT');
+const syncSofaBtn = () => { sofaBtn.textContent = `Sofa: ${IT.teddy.visible ? 'OMHU TEDDY' : 'Loren'}`; };
 function setSofa(which) {
-  const isTeddy = which === 'teddy';
-  lorenItem.visible = !isTeddy;
-  teddyItem.visible = isTeddy;
-  coffeeItem.position.z = isTeddy ? 1.695 : 1.495;
-  sofaBtn.textContent = `Sofa: ${isTeddy ? 'OMHU TEDDY' : 'Loren'}`;
+  const to = which === 'teddy' ? IT.teddy : IT.loren, from = which === 'teddy' ? IT.loren : IT.teddy;
+  if (to.visible) return;
+  const shift = (which === 'teddy' ? 0.25 : -0.25) / 2, fx = Math.sin(from.rotation.y), fz = Math.cos(from.rotation.y);
+  to.position.set(from.position.x + fx * shift, 0, from.position.z + fz * shift);
+  to.rotation.y = from.rotation.y;
+  IT.coffee.position.x += fx * shift * 2;
+  IT.coffee.position.z += fz * shift * 2;
+  from.visible = false;
+  to.visible = true;
+  syncSofaBtn();
   if (sel && !sel.visible) select(null);
   describe();
   saveLayout();
 }
-sofaBtn.onclick = () => setSofa(teddyItem.visible ? 'loren' : 'teddy');
-if (params.get('sofa') === 'teddy') setSofa('teddy');
-else sofaBtn.textContent = `Sofa: ${teddyItem.visible ? 'OMHU TEDDY' : 'Loren'}`;
+sofaBtn.onclick = () => setSofa(IT.teddy.visible ? 'loren' : 'teddy');
+
+const designsEl = document.getElementById('designs'), blurbEl = document.getElementById('blurb'), navLabel = document.getElementById('navLabel');
+DESIGNS.forEach((d, i) => {
+  const b = document.createElement('button');
+  b.textContent = `${i + 1}. ${d.name}`;
+  b.onclick = () => applyDesign(i);
+  designsEl.appendChild(b);
+});
+function applyDesign(i) {
+  designIdx = (i + DESIGNS.length) % DESIGNS.length;
+  const d = DESIGNS[designIdx];
+  for (const [k, p] of Object.entries(d.pos)) {
+    IT[k].position.set(p[0], 0, p[1]);
+    IT[k].rotation.y = THREE.MathUtils.degToRad(p[2]);
+  }
+  for (const k of Object.keys(LAYOUT_A)) IT[k].visible = !(d.hide ?? []).includes(k);
+  IT.loren.visible = d.sofa === 'loren';
+  IT.teddy.visible = d.sofa === 'teddy';
+  const tc = d.teddy ?? 'Rust';
+  IT.teddy.userData.setColor(TEDDY_COLOURS[tc]);
+  IT.teddy.userData.name = `OMHU TEDDY sofa, ${tc.toLowerCase()}`;
+  IT.rug.userData.setStyle(d.rug);
+  Object.assign(IT.rug.userData, RUGS[d.rug]);
+  const paint = PAINTS[d.paint];
+  wAlcove.material.color.set(paint.hex);
+  setCurtains(d.curtains);
+  galleryTop.userData.off = d.gallery[0] !== 'top';
+  galleryBottom.userData.off = d.gallery[0] !== 'bottom';
+  (d.gallery[0] === 'top' ? galleryTop : galleryBottom).position.x = d.gallery[1];
+  setMode(d.evening);
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY + designIdx));
+    if (saved?.length === items.length) saved.forEach(([x, z, r, v], j) => { items[j].position.set(x, 0, z); items[j].rotation.y = r; items[j].visible = v; });
+  } catch { /* ignore bad storage */ }
+  syncBilly();
+  syncSofaBtn();
+  select(null);
+  [...designsEl.children].forEach((b, j) => b.classList.toggle('on', j === designIdx));
+  const sofaName = IT.teddy.visible ? IT.teddy.userData.name : 'Loren sofa, burnt orange';
+  blurbEl.innerHTML = `${d.blurb}<br><span>Alcove: <a href="${paint.url}" target="_blank" rel="noopener">F&amp;B ${paint.name}</a> · ${sofaName} · ${RUGS[d.rug].name} · curtains ${CURTAINS[d.curtains]}</span>`;
+  navLabel.innerHTML = `<b>${designIdx + 1} / ${DESIGNS.length} · ${d.name}</b><span>Alcove ${paint.name} · ${sofaName}</span>`;
+  history.replaceState(null, '', `#design=${designIdx + 1}`);
+}
+document.getElementById('prev').onclick = () => applyDesign(designIdx - 1);
+document.getElementById('next').onclick = () => applyDesign(designIdx + 1);
+addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') applyDesign(designIdx + 1);
+  if (e.key === 'ArrowLeft') applyDesign(designIdx - 1);
+});
+
+const params = new URLSearchParams(location.search);
+go(params.get('view') in VIEWS ? params.get('view') : 'Overview · TV + library', true);
+const hashDesign = Number(new URLSearchParams(location.hash.slice(1)).get('design') ?? params.get('design'));
+applyDesign(hashDesign >= 1 && hashDesign <= DESIGNS.length ? hashDesign - 1 : 0);
+if (params.get('mode') === 'evening') setMode(true);
 if (params.get('panel') === 'min') document.getElementById('ui').classList.add('min');
 
 renderer.setAnimationLoop((now) => {
